@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": "always"
+		},
+		"eslint.validate": [
+			"javascript",
+			"typescript",
+		]
+	}
+}
