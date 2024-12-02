@@ -32,4 +32,46 @@ export class GameServerController {
             },
         });
     }
+
+    async createGameServerSession(req: Request, res: Response) {
+        if (!req.gameServer) {
+            res.status(401).json({ error: "Invalid secret" });
+            return;
+        }
+
+        const ip = req.ip;
+        if (!ip) {
+            res.status(400).json({ error: "Invalid IP address" });
+            return;
+        }
+
+        try {
+            const id = await this.gameServerService.createGameServerSession(req.gameServer.id, ip);
+
+            res.status(201).json({ id });
+        } catch (error) {
+            res.status(400).json({ error: (error as Error)?.message || "Failed to create session" });
+        }
+    }
+
+    async endGameServerSession(req: Request, res: Response) {
+        if (!req.gameServer) {
+            res.status(401).json({ error: "Invalid secret" });
+            return;
+        }
+
+        const sessionId = req.params.id;
+        if (!sessionId) {
+            res.status(400).json({ error: "Invalid session ID" });
+            return;
+        }
+
+        try {
+            await this.gameServerService.endGameServerSession(sessionId);
+
+            res.status(200).end();
+        } catch (error) {
+            res.status(400).json({ error: (error as Error)?.message || "Failed to end session" });
+        }
+    }
 }

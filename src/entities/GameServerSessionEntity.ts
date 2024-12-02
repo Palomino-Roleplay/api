@@ -1,18 +1,18 @@
 import { Entity, PrimaryColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
-@Entity("sessions_player")
-export class PlayerSession extends BaseEntity {
+@Entity("sessions_gameserver")
+export class GameServerSession extends BaseEntity {
     @PrimaryColumn({
         type: "varchar",
-        length: 32,
+        length: 64,
     })
     id: string;
 
     @Column({
         type: "varchar",
-        length: 64,
+        length: 32,
     })
-    userId: string;
+    gameServerId: string;
 
     @Column({
         type: "varchar",
@@ -20,16 +20,19 @@ export class PlayerSession extends BaseEntity {
     })
     ip: string;
 
-    // createdAt
     @CreateDateColumn()
     createdAt: Date;
 
-    // updatedAt
+    @Column({
+        type: "timestamp",
+        nullable: true,
+    })
+    endedAt: Date;
+
     @UpdateDateColumn()
     updatedAt: Date;
 
-
-    constructor(parameters: { id: string; name: string; userId: string }) {
+    constructor(parameters: { id: string; gameServerId: string; ip: string }) {
         super();
 
         Object.assign(this, parameters);

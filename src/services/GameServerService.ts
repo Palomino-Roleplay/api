@@ -1,19 +1,24 @@
 import { Repository } from "typeorm";
 import { GameServer } from "../entities/GameServerEntity";
+import { GameServerSession } from "../entities/GameServerSessionEntity";
 import crypto from "crypto";
 import { generatePUID } from "../utils/idGenerator";
 import { defaultDataSource } from "../db/default";
 
 export class GameServerService {
     private static instance: GameServerService;
-    private repository: Repository<GameServer>;
+
+    private gameServerRepository: Repository<GameServer>;
+    private gameServerSessionRepository: Repository<GameServerSession>;
 
     private constructor() {}
 
     static getInstance(): GameServerService {
         if (!this.instance) {
             this.instance = new GameServerService();
-            this.instance.repository = defaultDataSource.getRepository(GameServer);
+
+            this.instance.gameServerRepository = defaultDataSource.getRepository(GameServer);
+            this.instance.gameServerSessionRepository = defaultDataSource.getRepository(GameServerSession);
         }
 
         return this.instance;
@@ -25,17 +30,17 @@ export class GameServerService {
 
         const gameServer = new GameServer({ id: id, name: name, secret: secret });
 
-        return this.repository.save(gameServer);
+        return this.gameServerRepository.save(gameServer);
     }
 
     async deleteGameServer(id: string): Promise<void> {
         const server = await this.getGameServer(id);
 
-        await this.repository.remove(server);
+        await this.gameServerRepository.remove(server);
     }
 
     async getGameServer(id: string): Promise<GameServer> {
-        const server = await this.repository.findOne({ where: { id } });
+        const server = await this.gameServerRepository.findOne({ where: { id } });
         if (!server) {
             throw new Error("GameServer not found");
         }
@@ -43,7 +48,7 @@ export class GameServerService {
     }
 
     async getGameServerBySecret(secret: string): Promise<GameServer> {
-        const server = await this.repository.findOne({ where: { secret } });
+        const server = await this.gameServerRepository.findOne({ where: { secret } });
         if (!server) {
             throw new Error("Invalid secret");
         }
@@ -51,6 +56,38 @@ export class GameServerService {
     }
 
     async getAllGameServers(): Promise<GameServer[]> {
-        return this.repository.find();
+        return this.gameServerRepository.find();
+    }
+
+    // Sessions
+
+    async createGameServerSession(gameServerId: string, ip: string): Promise<string> {
+        const id = generatePUID("gmsv_sesn", 64);
+
+        const session = new GameServerSession({ id, gameServerId, ip });
+
+        await session.save();
+
+        return id;
+    }
+
+    async getGameServerSession(id: string): Promise<GameServerSession> {
+        const session = await this.gameServerSessionRepository.findOne({ where: { id } });
+        if (!session) {
+            throw new Error("GameServerSession not found");
+        }
+
+        if (session.endedAt) {
+            throw new Error("GameServerSession has ended");
+        }
+
+        return session;
+    }
+
+    async endGameServerSession(id: string): Promise<void> {
+        const session = await this.getGameServerSession(id);
+        session.endedAt = new Date();
+
+        await this.gameServerSessionRepository.save(session);
     }
 }

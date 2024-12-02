@@ -5,6 +5,14 @@ import { GameServerAuthMiddleware } from "../middleware/AuthMiddleware";
 const GameServerRouter = Router();
 const controller = GameServerController.getInstance();
 
-GameServerRouter.get("/verify", GameServerAuthMiddleware, controller.verify);
+GameServerRouter.get("/verify", GameServerAuthMiddleware, (req, res) => controller.verify(req, res));
+
+GameServerRouter.post("/sessions/gameserver", GameServerAuthMiddleware, (req, res) => {
+    controller.createGameServerSession(req, res);
+});
+
+GameServerRouter.delete("/sessions/gameserver/:id", GameServerAuthMiddleware, (req, res) => {
+    controller.endGameServerSession(req, res);
+});
 
 export default GameServerRouter;
