@@ -12,8 +12,10 @@ app.use(express.json());
 
 // Routes
 import GameServerRouter from "./routes/GameServerRoutes";
+import UserRouter from "./routes/UserRoutes";
 
 app.use("/api/gameserver", GameServerRouter);
+app.use("/api/user", UserRouter);
 
 // Loading
 

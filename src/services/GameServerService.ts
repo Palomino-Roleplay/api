@@ -1,15 +1,20 @@
 import { Repository } from "typeorm";
 import { GameServer } from "../entities/GameServerEntity";
 import { GameServerSession } from "../entities/GameServerSessionEntity";
+import { PlayerSession } from "../entities/PlayerSessionEntity";
 import crypto from "crypto";
 import { generatePUID } from "../utils/idGenerator";
 import { defaultDataSource } from "../db/default";
+import { UserService } from "./UserService";
+import { User } from "../entities/UserEntity";
+import { IsNull } from "typeorm";
 
 export class GameServerService {
     private static instance: GameServerService;
 
     private gameServerRepository: Repository<GameServer>;
     private gameServerSessionRepository: Repository<GameServerSession>;
+    private playerSessionRepository: Repository<PlayerSession>;
 
     private constructor() {}
 
@@ -19,6 +24,7 @@ export class GameServerService {
 
             this.instance.gameServerRepository = defaultDataSource.getRepository(GameServer);
             this.instance.gameServerSessionRepository = defaultDataSource.getRepository(GameServerSession);
+            this.instance.playerSessionRepository = defaultDataSource.getRepository(PlayerSession);
         }
 
         return this.instance;
@@ -59,7 +65,7 @@ export class GameServerService {
         return this.gameServerRepository.find();
     }
 
-    // Sessions
+    // GameServerSessions
 
     async createGameServerSession(gameServerId: string, ip: string): Promise<string> {
         const id = generatePUID("gmsv_sesn", 64);
@@ -89,5 +95,73 @@ export class GameServerService {
         session.endedAt = new Date();
 
         await this.gameServerSessionRepository.save(session);
+    }
+
+    async getActiveGameServerSession(gameServerId: string): Promise<GameServerSession | null> {
+        const session = await this.gameServerSessionRepository.findOne({
+            where: {
+                gameServerId,
+                endedAt: IsNull(),
+            },
+            order: {
+                createdAt: "DESC",
+            },
+        });
+
+        return session;
+    }
+
+
+    // PlayerSessions
+
+    async createPlayerSession(steamId: string, ip: string, gameServer: GameServer): Promise<string> {
+        const gameServerId = gameServer.id;
+        const gameServerSession = await this.getActiveGameServerSession(gameServerId);
+
+        if (!gameServerSession) {
+            throw new Error("No active GameServerSession");
+        }
+
+        const id = generatePUID("gmcl_sesn", 64);
+
+        let user: User;
+
+        try {
+            user = await UserService.getInstance().getUserBySteamId(steamId);
+        } catch {
+            user = await UserService.getInstance().createUser(steamId);
+        }
+
+        const session = new PlayerSession({ id, userId: user.id, ip, gameServerId, gameServerSessionId: gameServerSession.id });
+
+        await session.save();
+
+        return id;
+    }
+
+    async getPlayerSession(id: string): Promise<PlayerSession> {
+        const session = await this.playerSessionRepository.findOne({ where: { id } });
+        if (!session) {
+            throw new Error("PlayerSession not found");
+        }
+
+        if (session.endedAt) {
+            throw new Error("PlayerSession has ended");
+        }
+
+        return session;
+    }
+
+    async getUserByPlayerSession(id: string): Promise<User> {
+        const session = await this.getPlayerSession(id);
+
+        return UserService.getInstance().getUser(session.userId);
+    }
+
+    async endPlayerSession(id: string): Promise<void> {
+        const session = await this.getPlayerSession(id);
+        session.endedAt = new Date();
+
+        await this.playerSessionRepository.save(session);
     }
 }

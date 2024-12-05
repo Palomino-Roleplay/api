@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, BaseEntity } from "typeorm";
+import { Entity, PrimaryColumn, Column, BaseEntity, CreateDateColumn } from "typeorm";
 
 @Entity("users")
 export class User extends BaseEntity {
@@ -17,10 +17,14 @@ export class User extends BaseEntity {
     @Column({
         type: "varchar",
         length: 255,
+        nullable: true,
     })
     discordId: string;
 
-    constructor(parameters: { id: string; steamId: string; discordId: string }) {
+    @CreateDateColumn()
+    createdAt: Date;
+
+    constructor(parameters: { id: string; steamId: string; discordId?: string }) {
         super();
 
         Object.assign(this, parameters);

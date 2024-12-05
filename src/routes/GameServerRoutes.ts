@@ -15,4 +15,12 @@ GameServerRouter.delete("/sessions/gameserver/:id", GameServerAuthMiddleware, (r
     controller.endGameServerSession(req, res);
 });
 
+GameServerRouter.post("/sessions/player", GameServerAuthMiddleware, (req, res) => {
+    controller.createPlayerSession(req, res);
+});
+
+GameServerRouter.delete("/sessions/player/:id", GameServerAuthMiddleware, (req, res) => {
+    controller.endPlayerSession(req, res);
+});
+
 export default GameServerRouter;
